@@ -1,0 +1,178 @@
+_ pack_state(int seqno, int pubkey, int order_seqno, int number_of_wins, int incoming_amount, int outgoing_amount, int owner_wc, int owner_account_id, cell orders) inline_ref {
+    return begin_cell()
+            .store_uint(seqno, 32)
+            .store_uint(pubkey, 256)
+            .store_uint(order_seqno, 32)
+            .store_uint(number_of_wins, 32)
+            .store_grams(incoming_amount)
+            .store_grams(outgoing_amount)
+            .store_int(owner_wc, 32)
+            .store_uint(owner_account_id, 256)
+            .store_dict(orders)
+            .end_cell();
+}
+
+_ unpack_state() inline_ref {
+    var ds = begin_parse(get_data());
+    var unpacked = (ds~load_uint(32), ds~load_uint(256), ds~load_uint(32), ds~load_uint(32), ds~load_grams(), ds~load_grams(), ds~load_int(32), ds~load_uint(256), ds~load_dict());
+    ds.end_parse();
+    return unpacked;
+}
+
+() send_grams(int wc, int addr, int grams) impure {
+    ;; int_msg_info$0 ihr_disabled:Bool bounce:Bool bounced:Bool src:MsgAddress -> 011000
+    cell msg = begin_cell()
+    ;;  .store_uint(0, 1) ;; 0 <= format indicator int_msg_info$0 
+    ;;  .store_uint(1, 1) ;; 1 <= ihr disabled
+    ;;  .store_uint(1, 1) ;; 1 <= bounce = true
+    ;;  .store_uint(0, 1) ;; 0 <= bounced = false
+    ;;  .store_uint(4, 5)  ;; 00100 <= address flags, anycast = false, 8-bit workchain
+        .store_uint (196, 9)
+        .store_int(wc, 8)
+        .store_uint(addr, 256)
+        .store_grams(grams)
+        .store_uint(0, 107) ;; 106 zeroes +  0 as an indicator that there is no cell with the data.
+        .end_cell(); 
+    send_raw_message(msg, 3); ;; mode, 2 for ignoring errors, 1 for sender pays fees, 64 for returning inbound message value
+}
+
+_ pack_order(int id, int status, int timestamp, int amount, int wc, int account_id) inline_ref {
+    return begin_cell()
+            .store_uint(id, 32)
+            .store_uint(status, 8)
+            .store_uint(timestamp, 32)
+            .store_grams(amount)
+            .store_int(wc, 32)
+            .store_uint(account_id, 256);
+}
+
+_ unpack_order(slice order) inline_ref {
+    return (order~load_uint(32), order~load_uint(8), order~load_uint(32), order~load_grams(), order~load_int(32), order~load_uint(256));
+}
+
+
+tuple order_tuple(int id, int status, int timestamp, int amount, int wc, int account_id) 
+    asm(id status timestamp amount wc account_id) "6 TUPLE";
+
+int get_seqno() method_id {
+    (int stored_seqno, int pubkey, int order_seqno, int number_of_wins, int incoming_amount, int outgoing_amount, int owner_wc, int owner_account_id, cell orders) = unpack_state();
+    return stored_seqno;
+}
+
+int get_pubkey() method_id {
+    (int stored_seqno, int pubkey, int order_seqno, int number_of_wins, int incoming_amount, int outgoing_amount, int owner_wc, int owner_account_id, cell orders) = unpack_state();
+    return pubkey;
+}
+
+int get_order_seqno() method_id {
+    (int stored_seqno, int pubkey, int order_seqno, int number_of_wins, int incoming_amount, int outgoing_amount, int owner_wc, int owner_account_id, cell orders) = unpack_state();
+    return order_seqno;
+}
+
+int get_number_of_wins() method_id {
+     (int stored_seqno, int pubkey, int order_seqno, int number_of_wins, int incoming_amount, int outgoing_amount, int owner_wc, int owner_account_id, cell orders) = unpack_state();
+     return number_of_wins;
+}
+
+int get_incoming_amount() method_id {
+    (int stored_seqno, int pubkey, int order_seqno, int number_of_wins, int incoming_amount, int outgoing_amount, int owner_wc, int owner_account_id, cell orders) = unpack_state();
+    return incoming_amount;
+}
+
+int get_outgoing_amount() method_id {
+    (int stored_seqno, int pubkey, int order_seqno, int number_of_wins, int incoming_amount, int outgoing_amount, int owner_wc, int owner_account_id, cell orders) = unpack_state();
+    return outgoing_amount;
+}
+
+var get_orders() method_id {
+    (int stored_seqno, int pubkey, int order_seqno, int number_of_wins, int incoming_amount, int outgoing_amount, int owner_wc, int owner_account_id, cell orders) = unpack_state();
+    int cursor = 0x7fffffff;
+    var l = nil;
+    do {
+        (cursor, var order, var found) = orders.udict_get_prev?(32, cursor);
+        if (found) {
+            (int id, int status, int timestamp, int amount, int wc, int account_id) = unpack_order(order);
+            l = cons(order_tuple(id, status, timestamp, amount, wc, account_id), l);
+        }
+    } until ( ~ found)
+    return l;
+}
+
+var remove_old_orders(var orders, int order_seqno) {
+    int cursor = order_seqno - 20;
+    do {
+        (cursor, var order, var found) = orders.udict_get_prev?(32, cursor);
+        if (found) {
+            orders~udict_delete_get?(32, cursor);
+        }
+    } until ( ~ found)
+    return orders;
+}
+
+int balance() inline_ref method_id {
+    return get_balance().pair_first();
+}
+
+() recv_internal(int order_amount, cell in_msg_cell, slice in_msg) impure {
+    var cs = in_msg_cell.begin_parse();
+    int flags = cs~load_uint(4);  ;; int_msg_info$0 ihr_disabled:Bool bounce:Bool bounced:Bool
+    if (flags & 1) { ;; ignore bounced
+        return ();
+    }
+    if (order_amount < 500000000) { ;; just receive grams without changing state 
+        return ();
+    }
+    slice src_addr_slice = cs~load_msg_addr();
+    (int src_wc, int src_addr) = parse_std_addr(src_addr_slice);
+    (int stored_seqno, int pubkey, int order_seqno, int number_of_wins, int incoming_amount, int outgoing_amount, int owner_wc, int owner_account_id, cell orders) = unpack_state();
+    orders = remove_old_orders(orders, order_seqno);
+    if (balance() < 2 * order_amount + 500000000) { ;; not enough grams to pay the bet back, so this is re-fill
+        builder order = pack_order(order_seqno, 1, now(), order_amount, src_wc, src_addr);
+        orders~udict_set_builder(32, order_seqno, order);
+        set_data(pack_state(stored_seqno, pubkey, order_seqno + 1, number_of_wins, incoming_amount + order_amount, outgoing_amount, owner_wc, owner_account_id, orders));
+        return ();
+    }
+    if (rand(10) >= 4) {
+        builder order = pack_order(order_seqno, 3, now(), order_amount, src_wc, src_addr);
+        orders~udict_set_builder(32, order_seqno, order);
+        set_data(pack_state(stored_seqno, pubkey, order_seqno + 1, number_of_wins, incoming_amount + order_amount, outgoing_amount, owner_wc, owner_account_id, orders));
+        if (order_amount > 3000000000) {
+            send_grams(owner_wc, owner_account_id, order_amount / 3);
+        }
+        return ();
+    }
+    send_grams(src_wc, src_addr, 2 * order_amount);
+    builder order = pack_order(order_seqno, 2, now(), order_amount, src_wc, src_addr);
+    orders~udict_set_builder(32, order_seqno, order);
+    set_data(pack_state(stored_seqno, pubkey, order_seqno + 1, number_of_wins + 1, incoming_amount, outgoing_amount + 2 * order_amount, owner_wc, owner_account_id, orders));
+}
+
+() recv_external(slice in_msg) impure {
+    if (slice_empty?(in_msg)) {
+        return (); 
+    }
+    var signature = in_msg~load_bits(512);
+    var message = in_msg;
+    int msg_seqno = message~load_uint(32);
+    (int stored_seqno, int pubkey, int order_seqno, int number_of_wins, int incoming_amount, int outgoing_amount, int owner_wc, int owner_account_id, cell orders) = unpack_state();
+    throw_unless(33, msg_seqno == stored_seqno);
+    throw_unless(34, check_signature(slice_hash(in_msg), signature, pubkey));
+    int action = message~load_uint(7);
+    if (action == 0) { ;; init contract 
+        throw_unless(32, stored_seqno == 0);
+        accept_message();
+        set_data(pack_state(stored_seqno + 1, pubkey, order_seqno, number_of_wins, incoming_amount, outgoing_amount, owner_wc, owner_account_id, orders));
+    } elseif (action == 1) { ;; change wallet owner address 
+        throw_unless(35, 288 == slice_bits(message));
+        accept_message();
+        int new_wc = message~load_int(32);
+        int new_account_id = message~load_uint(256);
+        set_data(pack_state(stored_seqno + 1, pubkey, order_seqno, number_of_wins, incoming_amount, outgoing_amount, new_wc, new_account_id, orders));
+    } elseif (action == 2) { ;; send given amount of grams to owner wallet address  
+        int amount_to_send = message~load_grams();
+        throw_if(36, amount_to_send + 500000000 > balance());
+        accept_message();
+        send_grams(owner_wc, owner_account_id, amount_to_send);
+        set_data(pack_state(stored_seqno + 1, pubkey, order_seqno, number_of_wins, incoming_amount, outgoing_amount, owner_wc, owner_account_id, orders));
+    }
+}
