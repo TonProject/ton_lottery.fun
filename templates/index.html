@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport">
+    <link href="static/css/bootstrap.min.css" rel="stylesheet"/>
+    <link href="static/favicon/apple-touch-icon.png" rel="apple-touch-icon" sizes="180x180">
+    <link href="static/favicon/favicon-32x32.png" rel="icon" sizes="32x32" type="image/png">
+    <link href="static/favicon/favicon-16x16.png" rel="icon" sizes="16x16" type="image/png">
+    <link href="static/favicon/site.webmanifest" rel="manifest">
+    <title>Лотерея TON</title>
+</head>
+<body>
+
+<nav class="navbar navbar-dark bg-dark">
+    <a class="navbar-brand" href="#">Лотерея TON</a>
+</nav>
+<div class="container">
+    <!-- Content here -->
+    <div class="row">
+        <div class="col-sm-4">
+            <br/>
+            <div>
+                <div class="alert alert-info" role="alert">
+                    <b>Описание:</b> Отправьте TON на смарт-контракт и получите шанс выиграть в 2 раза больше с
+                    моментальным и автоматическим получением выигрыша на ваш кошелёк. <br/>
+                </div>
+                <div class="alert alert-warning" role="alert">
+                    Минимальная ставка 0.5 TON. Удачи!  
+                </div>
+            </div>
+            <div id="actual_success_rate">Актуальный шанс выигрыша:</div>
+            <hr/>
+            <div id="address">Адрес смарт-контракта для игры:</div>
+
+            <div style="margin-top:10px; margin-bottom:10px;"><a target="_blank" class="btn btn-primary" href="https://app.tonkeeper.com/transfer/0QB6AA4Mb_SNs_iIuq02c7ypC5VxyY4JWmEkQuKswcg46VxG">Открыть Tonkeeper</a></div>
+            <div style="margin-top:10px; margin-bottom:10px;"><img src="static/qr.png" width="150px;"></div>
+
+            <div id="recommended_bet">Рекомендуемая ставка:</div>
+            <hr/>
+            <div id="balance">Баланс смарт-контракта:</div>
+            <div id="incoming_amount">Сумма пополнений:</div>
+            <div id="outgoing_amount">Сумма выплат:</div>
+            <div id="order_number">Количество игр:</div>
+            <div id="number_of_wins">Количество выигрышей:</div>
+            <hr/>
+            <div><a href="https://m.mexc.com/auth/signup?inviteCode=1SiLX">Купить TON на бирже MEXC</a></div>
+        </div>
+        <div class="col-sm-1"></div>
+        <div class="col-sm-7">
+            <br/>
+            <div><b>20 последних игр: </b></div>
+
+            <div>
+                <table class="table">
+                    <thead class="thead-dark">
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Сумма</th>
+                        <th scope="col">Результат</th>
+                        <th scope="col">Отправитель</th>
+                        <th scope="col">Время</th>
+                    </tr>
+                    </thead>
+                    <tbody id="orders">
+                    <tr>
+                        <th scope="row">1</th>
+                        <td>Mark</td>
+                        <td>Otto</td>
+                        <td>@mdo</td>
+                        <td>@mdo</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <hr/>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    let timeSince = function (date) {
+        if (typeof date !== 'object') {
+            date = new Date(date);
+        }
+
+        let seconds = Math.floor((new Date() - date) / 1000);
+        let intervalType;
+
+        let interval = Math.floor(seconds / 31536000);
+        if (interval >= 1) {
+            intervalType = 'год';
+        } else {
+            interval = Math.floor(seconds / 2592000);
+            if (interval >= 1) {
+                intervalType = 'месяц';
+            } else {
+                interval = Math.floor(seconds / 86400);
+                if (interval >= 1) {
+                    intervalType = 'день';
+                } else {
+                    interval = Math.floor(seconds / 3600);
+                    if (interval >= 1) {
+                        intervalType = "час";
+                    } else {
+                        interval = Math.floor(seconds / 60);
+                        if (interval >= 1) {
+                            intervalType = "минут";
+                        } else {
+                            interval = seconds;
+                            intervalType = "секунд";
+                        }
+                    }
+                }
+            }
+
+        }
+
+        if (interval > 1 || interval === 0) {
+            intervalType += '';
+        }
+
+        return interval + ' ' + intervalType + ' назад';
+    };
+
+    let data = '{{ data }}';
+       
+    data = data.replaceAll('&#39;', '"');
+    console.log(data);
+    let text = JSON.parse(data);
+
+    document.getElementById('address').innerHTML = '<b>Адрес смарт-контракта для игры: <br/></b><a style="color:blue; cursor:pointer;word-wrap:break-word;" onclick="copy(this);">' + text.address + '</a>';
+    document.getElementById('balance').innerHTML = '<b>Баланс смарт-контракта: </b>' + (text.balance) + ' TON';
+    document.getElementById('outgoing_amount').innerHTML = '<b>Сумма выплат: </b>' + (text.outgoing_amount) + ' TON';
+    document.getElementById('incoming_amount').innerHTML = '<b>Сумма пополнений: </b>' + (text.incoming_amount) + ' TON';
+    document.getElementById('order_number').innerHTML = '<b>Количество игр: </b>' + text.order_seqno;
+    document.getElementById('number_of_wins').innerHTML = '<b>Количество выигрышей: </b>' + text.number_of_wins;
+    document.getElementById('actual_success_rate').innerHTML = '<b>Актуальный шанс выигрыша: </b>' + (text.number_of_wins / text.order_seqno * 100).toFixed(2) + '%';
+    document.getElementById('recommended_bet').innerHTML = '<b>Рекомендуемая ставка: </b>' + (Math.round(text.balance / 10)) + ' TON';
+    let order_html = '';
+    for (let i = text.orders.length - 1; i >= 0; i--) {
+        let order = text.orders[i];
+        let order_status = (order.status === 2) ? '<b class="text-success">Выиграл ' + (order.amount * 2) + ' TON<b/> ' : '<b class="text-danger">Проиграл</b>';
+        order_html +=
+            '<tr><td>' + (order.id) + '</td>' +
+            '<td><b>' + (order.amount) + ' TON</b></td>' +
+            '<td>' + order_status + '</td>' +
+            '<td>' + order.address + '</td>' +
+            '<td>' + timeSince(new Date(order.timestamp * 1000)) + '</td></tr>';
+    }
+    document.getElementById('orders').innerHTML = order_html
+</script>
+</body>
+
+</html>
