@@ -9,6 +9,18 @@
     <link href="static/favicon/favicon-16x16.png" rel="icon" sizes="16x16" type="image/png">
     <link href="static/favicon/site.webmanifest" rel="manifest">
     <title>Лотерея TON</title>
+<style>
+
+.hint {
+    display: block;
+    width: 140px;
+    background-color: #555;
+    font-size: 12px;
+    text-align: center;
+    color: #fff;
+}
+
+</style>    
 </head>
 <body>
 
@@ -87,6 +99,28 @@ align-items:center; justify-content:center; color:white; padding-top: 10px; padd
     <span>Контакты: </span> <a style="margin-left:5px;" target="_blank" href="mailto:mytonprojects@gmail.com">mytonprojects@gmail.com</a>
 </div>    
 <script type="text/javascript">
+    
+    function copy() {
+      var text = document.getElementById('address_div').getAttribute('data-copy')
+
+      tooltip = document.getElementById('tooltip');
+      if (tooltip.style.display === "none") {
+          tooltip.style.display = "block";
+      } else{
+        tooltip.style.display = "none";
+      }
+
+      setTimeout(function() {
+        if (tooltip.style.display === "none") {
+            tooltip.style.display = "block";
+        } else{
+            tooltip.style.display = "none";
+        }
+      }, 1000);
+
+      navigator.clipboard.writeText(text);
+    }
+    
     let timeSince = function (date) {
         if (typeof date !== 'object') {
             date = new Date(date);
@@ -137,7 +171,7 @@ align-items:center; justify-content:center; color:white; padding-top: 10px; padd
     console.log(data);
     let text = JSON.parse(data);
 
-    document.getElementById('address').innerHTML = '<b>Адрес смарт-контракта для игры: <br/></b><a style="color:blue; cursor:pointer;word-wrap:break-word;" onclick="copy(this);">' + text.address + '</a>';
+    document.getElementById('address').innerHTML = '<b>Адрес смарт-контракта для игры: <br/></b><div id="address_div" style="color:blue; cursor:pointer;word-wrap:break-word;" data-copy="' + text.address + '" onclick="copy();">' + text.address + '</div><div class="hint" id='tooltip' style='display:none'>Скопировано</div>';
     document.getElementById('balance').innerHTML = '<b>Баланс смарт-контракта: </b>' + (text.balance) + ' TON';
     document.getElementById('outgoing_amount').innerHTML = '<b>Сумма выплат: </b>' + (text.outgoing_amount) + ' TON';
     document.getElementById('incoming_amount').innerHTML = '<b>Сумма пополнений: </b>' + (text.incoming_amount) + ' TON';
