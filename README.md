@@ -5,4 +5,5 @@
 
 # EN
 Instant-lottery smart-contract developed for The Open Network (https://ton.org).
+
 Send TON to smart contract address and get a chance to win X2!
