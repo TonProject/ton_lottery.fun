@@ -1,4 +1,4 @@
-# Лотерея TON (https://ton-lottery.fun) 
+# Лотерея TON (http://ton-lottery.fun) 
 # RU
 Мгновенная смарт-контракт лотерея на блокчейне TON. 
 
