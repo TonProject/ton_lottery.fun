@@ -179,9 +179,9 @@ align-items:center; justify-content:center; color:white; padding-top: 10px; padd
     document.getElementById('actual_success_rate').innerHTML = '<b>Актуальный шанс выигрыша: </b>' + (text.number_of_wins / text.order_seqno * 100).toFixed(2) + '%';
     document.getElementById('recommended_bet').innerHTML = '<b>Рекомендуемая ставка: </b>' + (Math.round(text.balance / 10)) + ' TON';
     let order_html = '';
-    for (let i = text.orders.length - 1; i >= 0; i--) {
+    for (let i = 0; i <= text.orders.length - 1; i++) {
         let order = text.orders[i];
-        let order_status = (order.status === 'win') ? '<b class="text-success">Выиграл ' + (order.amount * 2) + ' TON<b/> ' : '<b class="text-danger">Проиграл</b>';
+        let order_status = (order.status === "win") ? '<b class="text-success">Выиграл ' + (order.amount * 2) + ' TON<b/> ' : '<b class="text-danger">Проиграл</b>';
         order_html +=
             '<tr>' +
             '<td><b>' + (order.amount) + ' TON</b></td>' +
