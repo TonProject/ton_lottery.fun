@@ -66,13 +66,12 @@
         <div class="col-sm-1"></div>
         <div class="col-sm-7">
             <br/>
-            <div><b>20 последних игр: </b></div>
+            <div><b>Последние игры: </b></div>
 
             <div>
                 <table class="table">
                     <thead class="thead-dark">
                     <tr>
-                        <th scope="col">#</th>
                         <th scope="col">Сумма</th>
                         <th scope="col">Результат</th>
                         <th scope="col">Отправитель</th>
@@ -82,10 +81,10 @@
                     <tbody id="orders">
                     <tr>
                         <th scope="row">1</th>
-                        <td>Mark</td>
-                        <td>Otto</td>
-                        <td>@mdo</td>
-                        <td>@mdo</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
                     </tr>
                     </tbody>
                 </table>
@@ -171,7 +170,7 @@ align-items:center; justify-content:center; color:white; padding-top: 10px; padd
     console.log(data);
     let text = JSON.parse(data);
 
-    document.getElementById('address').innerHTML = '<b>Адрес смарт-контракта для игры: <br/></b><div id="address_div" style="color:blue; cursor:pointer;word-wrap:break-word;" data-copy="' + text.address + '" onclick="copy();">' + text.address + '</div><div class="hint" id='tooltip' style='display:none'>Скопировано</div>';
+    document.getElementById('address').innerHTML = '<b>Адрес смарт-контракта для игры: <br/></b><div id="address_div" style="color:blue; cursor:pointer;word-wrap:break-word;" data-copy="' + text.address + '" onclick="copy();">' + text.address + '</div><div class="hint" id="tooltip" style="display:none">Скопировано</div>';
     document.getElementById('balance').innerHTML = '<b>Баланс смарт-контракта: </b>' + (text.balance) + ' TON';
     document.getElementById('outgoing_amount').innerHTML = '<b>Сумма выплат: </b>' + (text.outgoing_amount) + ' TON';
     document.getElementById('incoming_amount').innerHTML = '<b>Сумма пополнений: </b>' + (text.incoming_amount) + ' TON';
@@ -182,9 +181,9 @@ align-items:center; justify-content:center; color:white; padding-top: 10px; padd
     let order_html = '';
     for (let i = text.orders.length - 1; i >= 0; i--) {
         let order = text.orders[i];
-        let order_status = (order.status === 2) ? '<b class="text-success">Выиграл ' + (order.amount * 2) + ' TON<b/> ' : '<b class="text-danger">Проиграл</b>';
+        let order_status = (order.status === 'win') ? '<b class="text-success">Выиграл ' + (order.amount * 2) + ' TON<b/> ' : '<b class="text-danger">Проиграл</b>';
         order_html +=
-            '<tr><td>' + (order.id) + '</td>' +
+            '<tr>' +
             '<td><b>' + (order.amount) + ' TON</b></td>' +
             '<td>' + order_status + '</td>' +
             '<td>' + order.address + '</td>' +
